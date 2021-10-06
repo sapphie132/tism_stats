@@ -6,12 +6,25 @@ import sys
 debug = False
 page_limit = None
 
-user_id = int(input("Please input your user id"))
-exact_query_term = input("Please input the extra search term (e.g. \"twilight sparkle\" or \"appledash\") to cross-reference")
+if len(sys.argv) > 1 and sys.argv[1] == "--username":
+    use_username = True
+else:
+    use_username = False
+
+if use_username:
+    username = input("Please input your username: ")
+else:
+    user_id = int(input("Please input your user id: "))
+extra_query_term = input("Please input the extra search term (e.g. \"twilight sparkle\" or \"appledash\") to cross-reference: ")
 
 
-forum_query = f"subject:*SFW*, user_id: {user_id}"
-fave_query = f"faved_by_id: {user_id}, safe"
+if use_username:
+    forum_query = f"subject:*SFW*, author: {username}"
+    fave_query = f"faved_by: {username}, safe"
+else:
+    forum_query = f"subject:*SFW*, user_id: {user_id}"
+    fave_query = f"faved_by_id: {user_id}, safe"
+
 image_query = fave_query + f", ({extra_query_term})"
 filter_id = 2 # Everything*
 
