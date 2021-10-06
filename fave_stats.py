@@ -52,7 +52,7 @@ def get_results(url_search, payload_key, page_limit):
 
 def get_posts(page_limit = None):
     base_url_search = "/api/v1/json/search/posts"
-    url_search = booru + base_url_search + f"?q={forum_query}"
+    url_search = booru + base_url_search + f"?q={forum_query}&per_page=50"
     print("Fetching forum posts…")
     posts = get_results(url_search, "posts", page_limit)
     return posts
@@ -75,7 +75,7 @@ def get_total_faves():
 
 def get_img_search_url(query):
     base_url_search = "/api/v1/json/search/images"
-    url_search = booru + base_url_search + f"?q={query}&filter_id={filter_id}"
+    url_search = booru + base_url_search + f"?q={query}&filter_id={filter_id}&per_page=50"
     return url_search
 
 def mk_post_url(p_id):
