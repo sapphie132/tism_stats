@@ -157,7 +157,7 @@ print(f"Images in your (safe) favourites matching the query: {len(fave_images)}"
 print(f"Total (safe) images in your faves: {total_faves}")
 print(f"Posts (that contain at least one image) made in the thread: {len(post_images)}")
 print(f"Images from this query that were posted to the thread: {overlap}")
-print(f"Expected value: {expected_value}")
+print(f"Expected value: {expected_value:.1f}")
 p_less, p_exact, p_more = calc_prob(len(post_images), p, overlap)
 print(f"Probability of randomising exactly {overlap} images from this query: {p_exact:%}")
 print(f"Probability of randomising less: {p_less:%}")
