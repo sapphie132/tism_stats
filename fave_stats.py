@@ -84,9 +84,13 @@ def mk_post_url(p_id):
 def calc_prob(n, p, i):
     total = 0
     for j in range(i+1):
-        total += math.comb(n, j) * ((1-p) ** (n-j)) * (p ** j)
+        curr = math.comb(n, j) * ((1-p) ** (n-j)) * (p ** j)
+        if j == i:
+            exact = curr
+        else:
+            total += curr
 
-    return total
+    return total, exact, 1-total-exact
 
 
 posts = get_posts(page_limit)
@@ -139,6 +143,7 @@ print(f"Total (safe) images in your faves: {total_faves}")
 print(f"Posts (that contain at least one image) made in the thread: {len(post_images)}")
 print(f"Images from this query that were posted to the thread: {overlap}")
 print(f"Expected value: {expected_value}")
-p_more_eq = calc_prob(len(post_images), p, overlap)
-print(f"Probability of randomising {overlap} or more images from this query: {p_more_eq}")
-print(f"Probability of randomising less than {overlap} images from this query: {1-p_more_eq}")
+p_less, p_exact, p_more = calc_prob(len(post_images), p, overlap)
+print(f"Probability of randomising exactly {overlap} images from this query: {p_exact:%}")
+print(f"Probability of randomising less: {p_less:%}")
+print(f"Probability of randomising more: {p_more:%}")
