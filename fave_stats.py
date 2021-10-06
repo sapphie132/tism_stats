@@ -1,3 +1,4 @@
+import math
 import requests
 import re
 
@@ -79,6 +80,15 @@ def get_img_search_url(query):
 
 def mk_post_url(p_id):
     return f"https://ponybooru.org/forums/dis/topics/post-a-random-sfw-image-from-your-favorites?post_id={p_id}#post_{p_id}"
+
+def calc_prob(n, p, i):
+    total = 0
+    for j in range(i+1):
+        total += math.comb(n, j) * ((1-p) ** (n-j)) * (p ** j)
+
+    return total
+
+
 posts = get_posts(page_limit)
 images = get_images(page_limit)
 
@@ -121,11 +131,14 @@ for p_id in post_images:
         overlap += 1
         print(mk_post_url(p_id))
 
-expected_value = len(fave_images) / total_faves * len(post_images)
+p = len(fave_images) / total_faves 
+expected_value = p * len(post_images)
 
 print(f"Images in your (safe) favourites matching the query: {len(fave_images)}")
 print(f"Total (safe) images in your faves: {total_faves}")
 print(f"Posts (that contain at least one image) made in the thread: {len(post_images)}")
 print(f"Images from this query that were posted to the thread: {overlap}")
 print(f"Expected value: {expected_value}")
-
+p_more_eq = calc_prob(len(post_images), p, overlap)
+print(f"Probability of randomising {overlap} or more images from this query: {p_more_eq}")
+print(f"Probability of randomising less than {overlap} images from this query: {1-p_more_eq}")
