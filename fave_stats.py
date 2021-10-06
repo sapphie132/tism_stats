@@ -1,16 +1,18 @@
 import math
 import requests
 import re
+import sys
 
 debug = False
 page_limit = None
 
-user_id = 290
-forum_query = f"subject:*SFW*, user_id: {user_id}"
+user_id = int(input("Please input your user id"))
+exact_query_term = input("Please input the extra search term (e.g. \"twilight sparkle\" or \"appledash\") to cross-reference")
 
-extra_query_term = "princest"
+
+forum_query = f"subject:*SFW*, user_id: {user_id}"
 fave_query = f"faved_by_id: {user_id}, safe"
-image_query = fave_query + ", " + extra_query_term
+image_query = fave_query + f", ({extra_query_term})"
 filter_id = 2 # Everything*
 
 booru = "https://ponybooru.org"
