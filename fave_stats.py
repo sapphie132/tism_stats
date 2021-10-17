@@ -2,21 +2,45 @@ import math
 import requests
 import re
 import sys
+import json
+import random
 
 debug = False
 page_limit = None
 
-if len(sys.argv) > 1 and sys.argv[1] == "--username":
-    use_username = True
-else:
-    use_username = False
+state_file = 'state.json'
+try:
+    with open(state_file, 'r') as f:
+        print("Loading previous state…")
+        print(f"If this step crashes, try removing the {state_file} file")
+        obj = json.load(f)
+        if "username" in obj:
+            use_username = True
+            username = obj['username']
+        else:
+            use_username = False
+            user_id = obj['user_id']
 
-if use_username:
-    username = input("Please input your username: ")
-else:
-    user_id = int(input("Please input your user id: "))
+        loaded_posts = obj['saved_posts']
+        loaded_posts = {int(p_id):post for (p_id, post) in loaded_posts.items()}
+
+except FileNotFoundError as e:
+    obj = None
+    loaded_posts = {}
+
+if obj is None:
+    if len(sys.argv) > 1 and sys.argv[1] == "--username":
+        use_username = True
+    else:
+        use_username = False
+    
+    if use_username:
+        username = input("Please input your username: ")
+    else:
+        user_id = int(input("Please input your user id: "))
+
 extra_query_term = input("Please input the extra search term (e.g. \"twilight sparkle\" or \"appledash\") to cross-reference: ")
-
+    
 
 if use_username:
     forum_query = f"subject:*SFW*, author: {username}"
@@ -31,7 +55,35 @@ filter_id = 2 # Everything*
 booru = "https://ponybooru.org"
 
 
-def get_results(url_search, payload_key, page_limit):
+def save_state(posts_to_save):
+    to_write = {'saved_posts': posts_to_save}
+    if use_username:
+        to_write['username'] = username
+    else:
+        to_write['user_id'] = user_id
+
+    with open(state_file, 'w') as f:
+        json.dump(to_write, f)
+
+# base_results and interesting_attributes aren't mutated
+def get_results(url_search, payload_key, page_limit, base_results = None, interesting_attributes = None):
+    if interesting_attributes is None:
+        interesting_attributes = []
+
+    if base_results is None:
+        base_results = {}
+
+    def list_to_dict(l):
+        res = {}
+        for i in l:
+            curr = {}
+            for att in interesting_attributes:
+                curr[att] = i[att]
+            
+            res[int(i['id'])] = curr
+
+        return res
+
     resp = requests.get(url_search)
     if debug:
         print(url_search)
@@ -40,13 +92,14 @@ def get_results(url_search, payload_key, page_limit):
     
     if debug:
         print(resp.keys())
-    results = resp[payload_key]
+    results = list_to_dict(resp[payload_key])
     total = resp["total"]
     if debug:
         print(len(results))
     print(f"Total: {total}")
     
     page = 2 # we just fetched page 1
+    results = {**results, **base_results}
     while len(results) < total:
         if page_limit is not None and page > page_limit:
             break
@@ -58,23 +111,27 @@ def get_results(url_search, payload_key, page_limit):
             print(resp)
         resp = resp.json()
         page += 1
-        new_res = resp[payload_key]
+        new_res = list_to_dict(resp[payload_key])
         if debug:
             print(len(new_res))
-        results.extend(new_res)
+
+        results = {**results, **new_res}
 
     return results
 
-def get_posts(page_limit = None):
+def get_posts(page_limit = None, loaded_posts = None):
+    loaded_posts = {} if loaded_posts is None else loaded_posts
+    if random.random() < 0.05: # 5% chance to redownload the whole catalogue
+        loaded_posts = {}
     base_url_search = "/api/v1/json/search/posts"
     url_search = booru + base_url_search + f"?q={forum_query}&per_page=50"
     print("Fetching forum posts…")
-    posts = get_results(url_search, "posts", page_limit)
+    posts = get_results(url_search, "posts", page_limit, loaded_posts, ["body"])
     return posts
 
 def get_images(page_limit = None):
     url_search = get_img_search_url(image_query)
-    print("Fetching faved images…")
+    print("Fetching images…")
     images = get_results(url_search, "images", page_limit)
     return images
 
@@ -108,21 +165,23 @@ def calc_prob(n, p, i):
     return total, exact, 1-total-exact
 
 
-posts = get_posts(page_limit)
+posts = get_posts(page_limit, loaded_posts)
+save_state(posts)
 images = get_images(page_limit)
 
 image_regex = re.compile(">>(\d+)")
 post_images = {}
 multiple_per_post = {}
-for post in posts:
+for p_id in posts:
+    post = posts[p_id]
     body = post["body"]
     matches = image_regex.findall(body)
-    p_id = post['id']
     if len(matches) > 1:
         multiple_per_post[p_id] = matches
     
     if len(matches) > 0:
         post_images[p_id] = int(matches[0])
+
 
 # Haven't tested this, hopefully it works as intended and doesn't
 # crash the program
@@ -135,7 +194,7 @@ if len(multiple_per_post.keys()) > 0:
         print(mk_post_url(p_id) + f" ({', '.join(imgs)})")
 
 # Converting to set for quicker lookup
-fave_images = set([image['id'] for image in images])
+fave_images = set(images.keys())
 total_faves = get_total_faves()
 overlap = 0
 
