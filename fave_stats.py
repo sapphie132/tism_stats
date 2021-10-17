@@ -7,6 +7,18 @@ import random
 
 debug = False
 page_limit = None
+v = sys.version_info
+if v.major == 3:
+    if v.minor >= 8:
+        comb = math.comb
+    else:
+        def fact(n, k):
+            if n > k:
+                return n * fact(n-1, k)
+            else:
+                return 1
+        comb = lambda n, k: fact(n, (n-k)) / fact(k, 1) # We're expecting low values of k
+
 
 state_file = 'state.json'
 try:
@@ -156,7 +168,7 @@ def mk_post_url(p_id):
 def calc_prob(n, p, i):
     total = 0
     for j in range(i+1):
-        curr = math.comb(n, j) * ((1-p) ** (n-j)) * (p ** j)
+        curr = comb(n, j) * ((1-p) ** (n-j)) * (p ** j)
         if j == i:
             exact = curr
         else:
